@@ -1,4 +1,4 @@
-const apiKey = 'dde850110011f4e6153cc4b8af87757b';  // Replace with your OpenWeatherMap API key
+const apiKey = 'dde850110011f4e6153cc4b8af87757b'; // Replace with your OpenWeatherMap API key
 const searchBtn = document.getElementById('searchBtn');
 
 searchBtn.addEventListener('click', () => {
@@ -12,16 +12,31 @@ function getWeather(city) {
         return;
     }
 
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+    const currentWeatherURL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
 
-    fetch(url)
+    // Fetch current weather
+    fetch(currentWeatherURL)
         .then(response => response.json())
         .then(data => {
             displayWeather(data);
+            if (data.weather && data.weather[0]) {
+                setBackground(data.weather[0].main);
+            }
         })
         .catch(error => {
-            console.error('Error fetching data:', error);
-            alert('Error fetching weather data');
+            console.error('Error fetching current weather:', error);
+            alert('Failed to fetch weather data');
+        });
+
+    // Fetch 5-day forecast
+    fetch(forecastURL)
+        .then(response => response.json())
+        .then(data => {
+            displayForecast(data);
+        })
+        .catch(error => {
+            console.error('Error fetching forecast:', error);
         });
 }
 
@@ -41,14 +56,44 @@ function displayWeather(data) {
         <p>Humidity: ${humidity}%</p>
         <p>Condition: ${condition}</p>
     `;
+}
 
-    setBackground(condition);
+function displayForecast(data) {
+    if (!data || !data.list) return;
+
+    let forecastHTML = `<h3>5-Day Forecast</h3><div class="forecast">`;
+
+    const forecastDays = {};
+
+    data.list.forEach(item => {
+        if (item.dt_txt.includes('12:00:00')) {
+            const date = item.dt_txt.split(' ')[0];
+            if (!forecastDays[date]) {
+                forecastDays[date] = item;
+            }
+        }
+    });
+
+    for (const date in forecastDays) {
+        const day = forecastDays[date];
+        forecastHTML += `
+            <div class="forecast-day">
+                <h4>${date}</h4>
+                <p>Temp: ${day.main.temp}°C</p>
+                <p>Condition: ${day.weather[0].main}</p>
+                <p>Humidity: ${day.main.humidity}%</p>
+            </div>
+        `;
+    }
+
+    forecastHTML += `</div>`;
+    document.getElementById('weatherResult').innerHTML += forecastHTML;
 }
 
 function setBackground(condition) {
     let backgroundUrl = '';
 
-    switch(condition.toLowerCase()) {
+    switch (condition.toLowerCase()) {
         case 'clear':
             backgroundUrl = "url('https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1500&q=80')";
             break;
